@@ -1,0 +1,129 @@
+sft_trainer:
+  tf32: False
+  max_epochs: 100
+  accumulate_grad_steps: 1
+  pretrained_path: "checkpoints/pretrain/moirai-moe-1.0-R-base.safetensors"
+  is_valid: True
+  init_lr: 5e-6
+  T_max: 50  # equal to max_epochs
+  eta_min: 5e-6  # default: init_lr / 1000
+  train_length: 93600  # SFT training windows: 64
+  offset: 73440
+
+rl_trainer:
+  num_generations: 8
+  beta: 0.001  # regularization on KL divergence
+  pretrained_path: "checkpoints/pretrain/moirai-moe-1.0-R-base.safetensors"
+  max_epochs: 50
+  accumulate_grad_steps: 6
+  is_valid: True
+  init_lr: 5e-6
+  T_max: 50  # equal to max_epochs
+  eta_min: 5e-6  # default: init_lr / 1000
+  train_length: 93600  # RL training windows: 64
+  offset: 73440
+  data_selection: True
+  reward_shaping: True
+  lambda_acc_reward: 0.9
+  lambda_var_reward: 0.1
+  lambda_var_synergy: 0.01
+  lambda_freq_synergy: 0.01
+
+optimizer:
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.98
+  num_training_steps: null
+  num_warmup_steps: 0  # should be <= num_training_steps
+  scheduler_type: "cosine"
+  finetune_pattern: "full"
+
+train_dataset:
+  dataset: "loop_seattle_5T_20%"
+  fevbench_path: "../dataset/fev-bench/loop_seattle/5T"
+  fevbench_file: "train-00000-of-00001.parquet"
+  csv_path: "../dataset/fev-bench/loop_seattle_5T.csv"
+  train_windows: 64  # :=(train_length - context_length - prediction_length) // distance + 1
+  offset: 73440  # :=train_length-train_windows*distance-context_length, as sliding from the right to the left
+  train_length: 93600  # :=total_length-prediction_length*(val_windows+test_windows)=105120-288*20-288*20
+  prediction_length: 288
+  context_length: 1728  # default: [2, 20]*prediction_length
+  target_dim: 1  # number of variates
+  patch_size: 16
+  mode: "univariate"
+  storage_path: "dataset/finetune/fev-bench"
+  distance: 288
+  freq: "5T"
+
+val_dataset:  # contain the entire sequence
+  dataset: "loop_seattle_5T_20%_eval"
+  offset: 93600  # equal to train_length
+  val_length: 5760  # :=prediction_length*val_windows=288*20
+  prediction_length: 288
+  context_length: 1728
+  patch_size: 16
+  mode: "univariate"
+  storage_path: "dataset/finetune/fev-bench"
+  distance: 288
+  seasonality: 288
+
+eval_dataset:  # contain the entire sequence
+  dataset_name: "loop_seattle_5T_20%_eval"
+  dataset_path: "dataset/finetune/fev-bench/univariate/loop_seattle_5T_20%_eval"
+  train_length: 93600
+  test_length: 5760  # :=prediction_length*test_windows=288*20
+  context_length: 1728
+  prediction_length: 288
+  target_dim: 1
+  feat_dynamic_real_dim: 0
+  past_feat_dynamic_real_dim: 0
+  mode: "univariate"
+  to_univariate: False  # Moirai-MoE supports multivariate forecasting
+  batch_size: 1
+  patch_size: 16
+  num_samples: 100
+
+train_dataloader:
+  batch_size: 128
+  batch_size_factor: 1.0
+  cycle: false  # Set it as false to loop over all batches per epoch
+  num_batches_per_epoch: null
+  shuffle: True
+  num_workers: 11
+  pin_memory: True
+  drop_last: False
+  fill_last: False
+  worker_init_fn: null
+  prefetch_factor: 2
+  persistent_workers: True
+
+val_dataloader:
+  batch_size: 1
+  batch_size_factor: 1.0
+  cycle: False
+  num_batches_per_epoch: null
+  shuffle: False
+  num_workers: 11
+  pin_memory: False
+  drop_last: False
+  fill_last: False
+  worker_init_fn: null
+  prefetch_factor: 2
+  persistent_workers: True
+
+model:
+  d_model: 768
+  d_ff: 1024
+  num_layers: 12
+  patch_sizes: !!python/tuple [16, ]
+  max_seq_len: 512  # equal to max_patches, only used for pretraining
+  attn_dropout_p: 0.0
+  dropout_p: 0.0
+  scaling: true
+  min_patches: 2
+#  min_mask_ratio: 0.15
+#  max_mask_ratio: 0.5
+  max_dim: 128
+
+logger:
+  filename: "logging/loop_seattle_5T_20%_moirai_moe_1.0_R_base"

@@ -1,0 +1,129 @@
+sft_trainer:
+  tf32: False
+  max_epochs: 100
+  accumulate_grad_steps: 1
+  pretrained_path: "checkpoints/pretrain/moirai-moe-1.0-R-small.safetensors"
+  is_valid: True
+  init_lr: 5e-6
+  T_max: 50  # equal to max_epochs
+  eta_min: 5e-6  # default: init_lr / 1000
+  train_length: 85725  # SFT training windows: 882
+  offset: 42381
+
+rl_trainer:
+  num_generations: 8
+  beta: 0.001  # regularization on KL divergence
+  pretrained_path: "checkpoints/pretrain/moirai-moe-1.0-R-small.safetensors"
+  max_epochs: 50
+  accumulate_grad_steps: 4
+  is_valid: True
+  init_lr: 5e-6
+  T_max: 50  # equal to max_epochs
+  eta_min: 5e-6  # default: init_lr / 1000
+  train_length: 85725  # RL training windows: 882
+  offset: 42381
+  data_selection: True
+  reward_shaping: True
+  lambda_acc_reward: 0.9
+  lambda_var_reward: 0.1
+  lambda_var_synergy: 0.01
+  lambda_freq_synergy: 0.01
+
+optimizer:
+  weight_decay: 0.1
+  beta1: 0.9
+  beta2: 0.98
+  num_training_steps: null
+  num_warmup_steps: 0  # should be <= num_training_steps
+  scheduler_type: "cosine"
+  finetune_pattern: "full"
+
+train_dataset:
+  dataset: "entsoe_30T_50%"
+  fevbench_path: "../dataset/fev-bench/entsoe/30T"
+  fevbench_file: "train-00000-of-00001.parquet"
+  csv_path: "../dataset/fev-bench/entsoe_30T.csv"
+  train_windows: 882  # :=(train_length - context_length - prediction_length) // distance + 1
+  offset: 42381  # :=train_length-train_windows*distance-context_length, as sliding from the right to the left
+  train_length: 85725  # :=total_length-prediction_length*(val_windows+test_windows)=87645-48*20-48*20
+  prediction_length: 48
+  context_length: 1008  # default: [2, 20]*prediction_length
+  target_dim: 4  # number of variates
+  patch_size: 16
+  mode: "covariate"
+  storage_path: "dataset/finetune/fev-bench"
+  distance: 48
+  freq: "30T"
+
+val_dataset:  # contain the entire sequence
+  dataset: "entsoe_30T_50%_eval"
+  offset: 85725  # equal to train_length
+  val_length: 960  # :=prediction_length*val_windows=48*20
+  prediction_length: 48
+  context_length: 1008
+  patch_size: 16
+  mode: "covariate"
+  storage_path: "dataset/finetune/fev-bench"
+  distance: 48
+  seasonality: 48
+
+eval_dataset:  # contain the entire sequence
+  dataset_name: "entsoe_30T_50%_eval"
+  dataset_path: "dataset/finetune/fev-bench/covariate/entsoe_30T_50%_eval"
+  train_length: 85725
+  test_length: 960  # :=prediction_length*test_windows=48*20
+  context_length: 1008
+  prediction_length: 48
+  target_dim: 4
+  feat_dynamic_real_dim: 0
+  past_feat_dynamic_real_dim: 0
+  mode: "covariate"
+  to_univariate: False  # Moirai-MoE supports multivariate forecasting
+  batch_size: 1
+  patch_size: 16
+  num_samples: 100
+
+train_dataloader:
+  batch_size: 128
+  batch_size_factor: 1.0
+  cycle: false  # Set it as false to loop over all batches per epoch
+  num_batches_per_epoch: null
+  shuffle: True
+  num_workers: 11
+  pin_memory: True
+  drop_last: False
+  fill_last: False
+  worker_init_fn: null
+  prefetch_factor: 2
+  persistent_workers: True
+
+val_dataloader:
+  batch_size: 1
+  batch_size_factor: 1.0
+  cycle: False
+  num_batches_per_epoch: null
+  shuffle: False
+  num_workers: 11
+  pin_memory: False
+  drop_last: False
+  fill_last: False
+  worker_init_fn: null
+  prefetch_factor: 2
+  persistent_workers: True
+
+model:
+  d_model: 384
+  d_ff: 512
+  num_layers: 6
+  patch_sizes: !!python/tuple [16, ]
+  max_seq_len: 512  # equal to max_patches, only used for pretraining
+  attn_dropout_p: 0.0
+  dropout_p: 0.0
+  scaling: true
+  min_patches: 2
+#  min_mask_ratio: 0.15
+#  max_mask_ratio: 0.5
+  max_dim: 128
+
+logger:
+  filename: "logging/entsoe_30T_50%_moirai_moe_1.0_R_small"
