@@ -5,7 +5,7 @@ TimeRFT is one of the first poineering work that enhances the forecasting accura
 ## Quickstart
 1. Data Preparation
 
-You can download the real-world time series datasets from [fev-bench](https://huggingface.co/datasets/autogluon/fev_datasets). Then transform the obtained Huggingface dataset into the suitable train/val/test form by ```shell python data_converter.py```
+You can download the real-world time series datasets from [fev-bench](https://huggingface.co/datasets/autogluon/fev_datasets). Then transform the obtained Huggingface dataset into the suitable train/val/test form by ```python data_converter.py```
 
 2. Experiment Configuration
 
