@@ -13,6 +13,6 @@ All RFT-based or SFT-based TSFM adaptation experiments across various forecastin
 
 3. Training and Evaluation
 
-For univariate and multivariate forecasting tasks, you can implement TimeRFT by ```shell python finetune.py``` and ```shell python test.py```, with modifying "cfg_path".
+For univariate and multivariate forecasting tasks, you can implement TimeRFT by ```python finetune.py``` and ```python test.py```, with modifying "cfg_path".
 
-For covariate-informed forecasting tasks, you can implement TimeRFT by ```shell python finetune_cov.py``` and ```shell python test_cov.py```, with modifying "cfg_path" and "target_dim_pred".
+For covariate-informed forecasting tasks, you can implement TimeRFT by ```python finetune_cov.py``` and ```python test_cov.py```, with modifying "cfg_path" and "target_dim_pred".
