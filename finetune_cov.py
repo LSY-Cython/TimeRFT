@@ -345,13 +345,6 @@ def main(cfg, stage, model_scale="small"):
                         continue
 
                 loss = grpo_trainer.compute_loss(ts_model, batch_data, epoch, args.target_dim_pred)
-
-                ######
-                # rft_loss = grpo_trainer.compute_loss(ts_model, batch_data)
-                # sft_loss = training_step(batch_data, ts_model, ts_loss_func, seq_fields[0:-1])
-                # loss = rft_loss + 0.001 * sft_loss
-                ######
-
                 reward = grpo_trainer.metrics['reward'][-1]
                 kl = grpo_trainer.metrics['kl'][-1]
             else:
@@ -440,9 +433,7 @@ def main(cfg, stage, model_scale="small"):
         ckpt_path = f"checkpoints/finetune/{stage}/{train_data_cfg['dataset']}-moirai-moe-1.0-R-{model_scale}/{ft_setting_new}"
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
-        if (stage == "sft" and epoch in list(range(25, 50, 1)) + list(range(75, 100, 1))) or \
-                (stage == "rft" and epoch in list(range(25, 50, 1))):
-            save_file(ts_model.state_dict(), f"{ckpt_path}/epoch{epoch}.safetensors")
+        save_file(ts_model.state_dict(), f"{ckpt_path}/epoch{epoch}.safetensors")
 
 
 if __name__ == "__main__":
@@ -462,188 +453,11 @@ if __name__ == "__main__":
     fix_seed(seed=2025)  # Fix random seed for reproduction
     sft_configs = copy.deepcopy(ts_configs)
     sft_configs["rl_trainer"]["data_selection"] = False
-    # main(cfg=sft_configs, stage="sft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.0
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.0
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = False
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = False
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.0
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
+    main(cfg=sft_configs, stage="sft", model_scale="small")
     logging.getLogger().handlers.clear()
 
     # RL finetuning by TimeRFT
     fix_seed(seed=2025)  # Fix random seed for reproduction
     ts_configs["rl_trainer"]["beta"] = 0.001
-    # main(cfg=ts_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-
-    # -------- Next dataset --------
-    # Load experiment configurations
-    cfg_path = "configs/entsoe_30T_20%_moirai_moe_1.0_R_small.yaml"
-    with open(cfg_path, "r") as f:
-        ts_configs = yaml.load(f, Loader=yaml.FullLoader)
-    args.target_dim_pred = 1
-
-    # Supervised finetuning
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    sft_configs = copy.deepcopy(ts_configs)
-    sft_configs["rl_trainer"]["data_selection"] = False
-    # main(cfg=sft_configs, stage="sft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.0
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.0
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = False
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.001
-    rft_configs["rl_trainer"]["data_selection"] = False
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by Native GRPO
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    rft_configs = copy.deepcopy(ts_configs)
-    rft_configs["rl_trainer"]["beta"] = 0.0
-    rft_configs["rl_trainer"]["data_selection"] = True
-    rft_configs["rl_trainer"]["reward_shaping"] = True
-    rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-    rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-    rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-    rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-    main(cfg=rft_configs, stage="rft", model_scale="small")
-    logging.getLogger().handlers.clear()
-
-    # RL finetuning by TimeRFT
-    fix_seed(seed=2025)  # Fix random seed for reproduction
-    ts_configs["rl_trainer"]["beta"] = 0.001
-    # main(cfg=ts_configs, stage="rft", model_scale="small")
+    main(cfg=ts_configs, stage="rft", model_scale="small")
     logging.getLogger().handlers.clear()

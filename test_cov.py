@@ -1,6 +1,3 @@
-"""
-Evaluate on GiftEval benchmark, refer to ../gift-eval/notebooks/moirai.ipynb
-"""
 import os
 import yaml
 import torch
@@ -180,12 +177,6 @@ def main(cfg, stage, model_scale="small"):
                     f"metrics={test_sample_res}")
         test_id += 1
 
-    # Remove anomalous test samples
-    if "solar_with_weather_15T" in eval_data_cfg["dataset_name"]:
-        window_id = 5
-        for metric, value in eval_res.items():
-            value.pop(window_id)
-
     eval_res_mean = {metric: float(np.nanmean(value)) for metric, value in eval_res.items()}
     logger.info(f"[Epoch {args.epoch}] Evaluation results: {eval_res_mean}")
 
@@ -220,189 +211,32 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    for ratio in [20, 100]:
-        # Load experiment configurations
-        # cfg_path = f"configs/uci_air_quality_1H_{ratio}%_moirai_moe_1.0_R_small.yaml"
-        # args.target_dim_pred = 4
-        # cfg_path = f"configs/solar_with_weather_15T_{ratio}%_moirai_moe_1.0_R_small.yaml"
-        # args.target_dim_pred = 1
-        # cfg_path = f"configs/entsoe_30T_{ratio}%_moirai_moe_1.0_R_small.yaml"
-        # args.target_dim_pred = 1
-        cfg_path = f"configs/entsoe_30T_{ratio}%_moirai_moe_1.0_R_small.yaml"
-        args.target_dim_pred = 1
-        with open(cfg_path, "r") as f:
-            ts_configs = yaml.load(f, Loader=yaml.FullLoader)
+    # Load experiment configurations
+    cfg_path = f"configs/entsoe_30T_100%_moirai_moe_1.0_R_small.yaml"
+    args.target_dim_pred = 1
+    with open(cfg_path, "r") as f:
+        ts_configs = yaml.load(f, Loader=yaml.FullLoader)
 
-        # Test pretrained model
-        fix_seed(seed=2025)  # Fix random seed for reproduction
-        args.eval_stage = "pretrain"
-        args.pretrained_path = "checkpoints/pretrain/moirai-moe-1.0-R-small.safetensors"
-        # main(cfg=ts_configs, stage="pretrain", model_scale="small")
-        logging.getLogger().handlers.clear()
+    # Test pretrained model
+    fix_seed(seed=2025)  # Fix random seed for reproduction
+    args.eval_stage = "pretrain"
+    args.pretrained_path = "checkpoints/pretrain/moirai-moe-1.0-R-small.safetensors"
+    main(cfg=ts_configs, stage="pretrain", model_scale="small")
+    logging.getLogger().handlers.clear()
 
-        # Test SFT method
-        args.eval_stage = "finetune"
-        sft_configs = copy.deepcopy(ts_configs)
-        sft_configs["rl_trainer"]["data_selection"] = False
-        for epoch in list(range(25, 50, 1)) + list(range(75, 100, 1)):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.sft_path = f"checkpoints/finetune/sft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72/epoch{epoch}.safetensors"
-            # args.sft_path = f"checkpoints/finetune/sft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96/epoch{epoch}.safetensors"
-            # args.sft_path = f"checkpoints/finetune/sft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48/epoch{epoch}.safetensors"
-            args.sft_path = f"checkpoints/finetune/sft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}/epoch{epoch}.safetensors"
-            # main(cfg=sft_configs, stage="sft", model_scale="small")
-            logging.getLogger().handlers.clear()
+    # Test SFT method
+    args.eval_stage = "finetune"
+    sft_configs = copy.deepcopy(ts_configs)
+    sft_configs["rl_trainer"]["data_selection"] = False
+    fix_seed(seed=2025)  # Fix random seed for reproduction
+    args.sft_path = f"checkpoints/finetune/sft/entsoe_30T_100%-moirai-moe-1.0-R-small/cl1008-pl48/epoch{args.epoch}.safetensors"
+    main(cfg=sft_configs, stage="sft", model_scale="small")
+    logging.getLogger().handlers.clear()
 
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = False
-        rft_configs["rl_trainer"]["reward_shaping"] = False
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 1.0
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.0
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.0
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = True
-        rft_configs["rl_trainer"]["reward_shaping"] = True
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.0
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.0-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = True
-        rft_configs["rl_trainer"]["reward_shaping"] = True
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = True
-        rft_configs["rl_trainer"]["reward_shaping"] = True
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.0
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.0
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = True
-        rft_configs["rl_trainer"]["reward_shaping"] = False
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs0-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.001
-        rft_configs["rl_trainer"]["data_selection"] = False
-        rft_configs["rl_trainer"]["reward_shaping"] = True
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds0-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test native GPRO method
-        args.eval_stage = "finetune"
-        rft_configs = copy.deepcopy(ts_configs)
-        rft_configs["rl_trainer"]["beta"] = 0.0
-        rft_configs["rl_trainer"]["data_selection"] = True
-        rft_configs["rl_trainer"]["reward_shaping"] = True
-        rft_configs["rl_trainer"]["lambda_acc_reward"] = 0.9
-        rft_configs["rl_trainer"]["lambda_var_reward"] = 0.1
-        rft_configs["rl_trainer"]["lambda_var_synergy"] = 0.01
-        rft_configs["rl_trainer"]["lambda_freq_synergy"] = 0.01
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.0-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds0-rs0-lar1.0-lvr0.0-lvs0.0-lfs0.0/epoch{epoch}.safetensors"
-            main(cfg=rft_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
-
-        # Test TimeRFT method
-        args.eval_stage = "finetune"
-        ts_configs["rl_trainer"]["beta"] = 0.001
-        for epoch in range(25, 50, 1):
-            fix_seed(seed=2025)  # Fix random seed for reproduction
-            args.epoch = epoch
-            # args.rft_path = f"checkpoints/finetune/rft/uci_air_quality_1H_{ratio}%-moirai-moe-1.0-R-small/cl720-pl72-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/solar_with_weather_15T_{ratio}%-moirai-moe-1.0-R-small/cl1056-pl96-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_{ratio}%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_H{ratio}_100%-moirai-moe-1.0-R-small/cl1008-pl{ratio}-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{epoch}.safetensors"
-            # main(cfg=ts_configs, stage="rft", model_scale="small")
-            logging.getLogger().handlers.clear()
+    # Test TimeRFT method
+    args.eval_stage = "finetune"
+    ts_configs["rl_trainer"]["beta"] = 0.001
+    fix_seed(seed=2025)  # Fix random seed for reproduction
+    args.rft_path = f"checkpoints/finetune/rft/entsoe_30T_100%-moirai-moe-1.0-R-small/cl1008-pl48-ng8-kl0.001-ds1-rs1-lar0.9-lvr0.1-lvs0.01-lfs0.01/epoch{args.epoch}.safetensors"
+    main(cfg=ts_configs, stage="rft", model_scale="small")
+    logging.getLogger().handlers.clear()

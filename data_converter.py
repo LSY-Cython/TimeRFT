@@ -1,7 +1,3 @@
-"""
-Data curation: applying sliding windows to create offline datasets.
-"""
-
 import abc
 from dataclasses import dataclass
 from pathlib import Path
@@ -446,7 +442,7 @@ if __name__ == "__main__":  # must run in AutoDL environment
     import yaml
 
     # Load data curation configurations
-    cfg_path = "configs/entsoe_30T_H96_100%_moirai_moe_1.0_R_small.yaml"
+    cfg_path = "configs/ett_15T_100%_moirai_moe_1.0_R_small.yaml"
     with open(cfg_path, "r") as f:
         data_cfg = yaml.load(f, Loader=yaml.FullLoader)["train_dataset"]
     CUSTOM_DATA_PATH = data_cfg["storage_path"]
@@ -465,13 +461,10 @@ if __name__ == "__main__":  # must run in AutoDL environment
     if not os.path.exists(csv_path):
         # # ERCOT/Loop Seattle
         # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq, channel=0)
-        # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq, channel=1)
 
-        # # ETT
-        # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
-        #                variates=['HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'OT'], channel=0)
-        # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
-        #                variates=['HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'OT'], channel=1)
+        # ETT
+        parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
+                       variates=['HUFL', 'HULL', 'MUFL', 'MULL', 'LUFL', 'LULL', 'OT'], channel=0)
 
         # # Jena Weather
         # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
@@ -491,11 +484,9 @@ if __name__ == "__main__":  # must run in AutoDL environment
         #                variates=['target', 'global_horizontal_irradiance', 'temp', 'pressure', 'humidity',
         #                          'wind_speed', 'rain_1h', 'snow_1h', 'clouds_all', 'day_length'])
 
-        # ENTSO-e Load
-        parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
-                       variates=['target', 'solar_generation_actual', 'wind_onshore_generation_actual', 'temperature'], channel=0)
+        # # ENTSO-e Load
         # parquet_to_csv(storage_path=fevbench_path, save_path=csv_path, mode=mode, freq=freq,
-        #                variates=['target', 'solar_generation_actual', 'wind_onshore_generation_actual', 'temperature'], channel=1)
+        #                variates=['target', 'solar_generation_actual', 'wind_onshore_generation_actual', 'temperature'], channel=0)
 
     """
     Create training dataset.
