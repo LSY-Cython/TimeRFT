@@ -1,7 +1,3 @@
-"""
-Execute GRPO algorithm on Moirai-MoE, refer to grpo_trainer.py in Visual-RFT.
-"""
-
 import torch
 import torch.nn as nn
 import math
@@ -151,7 +147,7 @@ class GRPOTrainer:
         return rewards_offset
 
     def shape_rewards(self, rewards, per_token_logps, unit, type, threshold=0.8, alpha=0.01):
-        if type == "Nonlinear-shaping":  # Refer to Eq.(4) proposed in "TempSamp-R1: Effective Temporal Sampling with Reinforcement Fine-Tuning for Video LLMs"
+        if type == "Nonlinear-shaping":
             rewards_shaped = torch.where(rewards >= 0.8, 0.8 + 0.01 * torch.log((rewards - 0.8) + 1),
                                          0.8 - (torch.exp(0.8 - rewards) - 1) / (torch.e - 1))
 
@@ -248,9 +244,6 @@ class GRPOTrainer:
         return advantages
 
     def clip_advantages(self, advantages, type="NSR"):
-        """
-        Refer to "The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning".
-        """
         if type == "NSR":  # Solely NSR training
             advantages_raw = rearrange(advantages, "(b n) l -> n b l", n=self.num_generations)
             advantages = torch.clamp(advantages_raw, max=0)
@@ -341,10 +334,6 @@ class GRPOTrainer:
         # Compute patch-wise advantages
         patch_advantages = self.compute_patch_advantages(patch_rewards_offset, pred_mask_offset, num_var, num_token_per_var,
                                                          type="PRIME", is_cumsum=True)  # (batch_size*num_generations, seq_len)
-        ########
-        # print(patch_rewards_offset[0:8, -20:])
-        # print(patch_advantages[0:8, -20:])
-        ########
 
         # Compute combined rewards and advantages
         rewards_offset = 0.0 * seq_rewards_offset + 1.0 * patch_rewards_offset

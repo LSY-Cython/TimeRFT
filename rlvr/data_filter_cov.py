@@ -10,8 +10,7 @@ from utils import move_dict_to_device
 
 def compute_coverage_rate(forecasts, target, prediction_length, num_var, confidence=0.5):
     """
-    Compute Prediction Interval Coverage Probability (PICP),
-    refer to TMDM: Transformer-modulated diffusion models for probabilistic multivariate time series forecasting.
+    Compute Prediction Interval Coverage Probability (PICP).
     """
     forecasts = rearrange(forecasts, 'n (c l) p -> n (l p) c', c=num_var)[:, -prediction_length:, :]
     target = rearrange(target, 'b (c l) p -> b (l p) c', c=num_var)[0, -prediction_length:, ...]
@@ -28,8 +27,7 @@ def compute_coverage_rate(forecasts, target, prediction_length, num_var, confide
 
 def compute_anomaly_ratio(target, num_var, z_score=1.96):
     """
-    Compute the proportion of outliers, which reflects the level of noise in time series,
-    refer to BLAST: Balanced Sampling Time Series Corpus for Universal Forecasting Models.
+    Compute the proportion of outliers, which reflects the level of noise in time series.
     """
     target = rearrange(target, 'b (c l) p -> b (l p) c', c=num_var)
 
@@ -43,9 +41,6 @@ def compute_anomaly_ratio(target, num_var, z_score=1.96):
 
 
 def compute_forecastability(target, num_var):
-    """
-    Refer to ForeCA: Forecastable component analysis, ICML 2013.
-    """
     target = rearrange(target, 'b (c l) p -> b (l p) c', c=num_var)[0]
     if not isinstance(target, np.ndarray):
         target = target.detach().cpu().numpy()

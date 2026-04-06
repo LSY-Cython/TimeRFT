@@ -1,6 +1,3 @@
-"""
-Define outcome-supervised reward functions for time series forecasting.
-"""
 import math
 import numpy as np
 import torch
@@ -55,9 +52,6 @@ def sequence_frequency_reward(prediction, target, prediction_length, patch_size)
 
 
 def sequence_structure_reward(prediction, target, prediction_length, patch_size, type="Variance"):  # (num_samples, series_length, num_var)
-    """
-    Refer to PSLoss: Sequence-wise Structural Loss for Time Series Forecasting.
-    """
     pred_norm, target_norm = sequence_normalization(prediction, target, prediction_length)
     num_samples, series_length, num_var = target.shape
 
@@ -116,9 +110,6 @@ def patch_frequency_reward(prediction, target, prediction_length, patch_size):  
 
 
 def patch_structure_reward(prediction, target, prediction_length, patch_size, type="Variance"):  # (num_samples, series_length, num_var)
-    """
-    Refer to PSLoss: Patch-wise Structural Loss for Time Series Forecasting.
-    """
     pred_norm, target_norm = sequence_normalization(prediction, target, prediction_length)
     num_samples, _, num_var = target.shape
     pred_patch = rearrange(pred_norm, 'n (l p) c -> n l p c', p=patch_size)
@@ -154,87 +145,4 @@ def patch_structure_reward(prediction, target, prediction_length, patch_size, ty
 
     else:
         raise NotImplementedError
-
-
-def season_trend_decomposition(alpha: float, x):  # (num_samples, series_length, num_var)
-    """
-    Exponential Moving Average (EMA) decomposition, refer to baselines/utils.py in DBLoss.
-    """
-    _, T, _ = x.shape
-    powers = torch.flip(torch.arange(T, dtype=torch.double), dims=(0,))
-    weights = torch.pow((1 - alpha), powers).to(x.device)
-    divisor = weights.clone()
-    weights[1:] = weights[1:] * alpha
-    weights = weights.reshape(1, T, 1)
-    divisor = divisor.reshape(1, T, 1)
-    trend = torch.div(torch.cumsum(x * weights, dim=1), divisor).to(torch.float32)
-    season = x - trend
-
-    return trend, season  # (num_samples, length, num_var)
-
-
-def season_trend_reward(alpha: float, prediction, target, prediction_length, patch_size):  # (num_samples, series_length, num_var)
-    pred_trend, pred_season = season_trend_decomposition(alpha, prediction)
-    target_trend, target_season = season_trend_decomposition(alpha, target)
-
-    trend_reward = sequence_accuracy_reward(pred_trend, target_trend, prediction_length, patch_size)
-    season_reward = sequence_accuracy_reward(pred_season, target_season, prediction_length, patch_size)
-    reward = 0.5 * trend_reward + 0.5 * season_reward
-
-    return reward  # (num_samples, )
-
-
-if __name__ == "__main__":
-    import os
-    os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-    import matplotlib.pyplot as plt
-
-    """
-    Compare alpha-sensitive EMA with time-consuming STL
-    """
-    # from statsmodels.tsa.seasonal import STL
-    # import time
-
-    # rs = np.random.RandomState(0xA4FD94BC)
-    # tau = 2000
-    # t = np.arange(tau)
-    # period = int(0.05 * tau)
-    # seasonal = period + ((period % 2) == 0)  # Ensure odd
-    # e = 0.25 * rs.standard_normal(tau)
-    # y = np.cos(t / tau * 2 * np.pi) + 0.25 * np.sin(t / period * 2 * np.pi) + e
-    # plt.plot(y)
-    # plt.title("Simulated Data")
-    # xlim = plt.gca().set_xlim(0, tau)
-    # plt.show()
-    #
-    # stl_st = time.time()
-    # stl_fit = STL(y, period=period, seasonal=seasonal).fit()  # y must be squeezable to 1d
-    # stl_trend = stl_fit.trend
-    # stl_season = stl_fit.seasonal
-    # stl_resid = stl_fit.resid
-    # stl_et = time.time()
-    #
-    # alpha = 1 / (period + 1)
-    # y_temp = torch.from_numpy(y).reshape(1, -1, 1)
-    # ema_st = time.time()
-    # ema_trend, ema_season = season_trend_decomposition(alpha, y_temp)
-    # ema_trend = ema_trend.detach().cpu().numpy().reshape(-1)
-    # ema_season = ema_season.detach().cpu().numpy().reshape(-1)
-    # ema_et = time.time()
-    #
-    # print(f"STL time cost: {stl_et-stl_st}s; EMA time cost: {ema_et-ema_st}s")
-    # plt.subplot(2, 2, 1)
-    # plt.plot(stl_trend)
-    # plt.title("STL trend")
-    # plt.subplot(2, 2, 2)
-    # plt.plot(ema_trend)
-    # plt.title("EMA trend")
-    # plt.subplot(2, 2, 3)
-    # plt.plot(stl_season)
-    # plt.title("STL season")
-    # plt.subplot(2, 2, 4)
-    # plt.plot(ema_season)
-    # plt.title("EMA season")
-    # plt.show()
-
 
