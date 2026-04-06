@@ -1,8 +1,3 @@
-"""
-GiftEval dataset wrapper and splitter, refer to ../gift-eval/src/gift_eval/data.py
-/data.py
-"""
-
 import os
 import math
 from functools import cached_property
@@ -213,51 +208,4 @@ class Dataset:
             distance=self.prediction_length,
         )
         return test_data
-
-
-# if __name__ == "__main__":
-#     # Load experiment configurations
-#     cfg_path = "../configs/ett1_15T_moirai_moe_1.0_R_small.yaml"
-#     with open(cfg_path, "r") as f:
-#         ts_configs = yaml.load(f, Loader=yaml.FullLoader)
-#
-#     eval_data_cfg = ts_configs["eval_dataset"]
-#     dataset = Dataset(name=eval_data_cfg["dataset_name"],
-#                       term="short",
-#                       to_univariate=False,
-#                       dataset_path=f"../{eval_data_cfg['dataset_path']}")
-#
-#
-#     print("Data size: ",  dataset.hf_dataset[0]["target"].shape)
-#     print("Start date: ", dataset.hf_dataset[0]["start"])
-#     print("Dataset frequency: ", dataset.freq)
-#     print("Prediction length: ", dataset.prediction_length)
-#     print("Number of windows in the rolling evaluation: ", dataset.windows)
-#     print("Target dim: ", dataset.target_dim)
-#     print("_min_series_length: ", dataset._min_series_length)
-#     print("sum_series_length: ", dataset.sum_series_length)
-#
-#     train_data_iter = dataset.training_dataset  # Get the training data iterator
-#     train_data = next(iter(train_data_iter))
-#     print("Keys in the training data: ", train_data.keys())
-#     print("Item id: ", train_data["item_id"])
-#     print("Start Date: ", train_data["start"])
-#     print("Training dataset frequency: ", train_data["freq"])
-#     print("Training data size: ", train_data["target"].shape)
-#
-#     test_split_iter = dataset.test_data
-#     test_data = next(iter(test_split_iter))
-#     test_input_split_iter = dataset.test_data.input
-#     input = next(iter(test_input_split_iter))
-#     print("Keys in the test data: ", input.keys())
-#     print("Context Item id: ", input["item_id"])
-#     print("Context Start Date: ", input["start"])
-#     print("Context Frequency: ", input["freq"])
-#     print("Context target values: ", input["target"].shape)
-#     test_label_split_iter = dataset.test_data.label
-#     label = next(iter(test_label_split_iter))
-#     print("Forecast Item id: ", label["item_id"])
-#     print("Forecast Start Date: ", label["start"])
-#     print("Forecast Frequency: ", label["freq"])
-#     print("Forecast target values: ", label["target"].shape)
 
